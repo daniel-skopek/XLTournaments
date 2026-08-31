@@ -11,7 +11,6 @@ libraries:
   - me.mattstudios.utils:matt-framework:1.4.6
   - com.github.cryptomorin:XSeries:13.7.0
   - dev.triumphteam:triumph-gui:3.1.13
-  - org.bstats:bstats-bukkit:3.0.2
   - net.kyori:adventure-text-minimessage:4.24.0
   - org.apache.commons:commons-lang3:3.12.0
 

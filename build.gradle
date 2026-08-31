@@ -34,8 +34,6 @@ dependencies {
 
     compileOnly('dev.triumphteam:triumph-gui:3.1.13')
 
-    compileOnly('org.bstats:bstats-bukkit:3.0.2')
-
     // Adventure
     compileOnly "net.kyori:adventure-text-minimessage:4.24.0"
 

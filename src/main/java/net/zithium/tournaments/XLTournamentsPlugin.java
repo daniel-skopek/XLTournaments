@@ -17,14 +17,12 @@ import net.zithium.tournaments.tournament.TournamentManager;
 import net.zithium.tournaments.utility.TaskScheduler;
 import net.zithium.tournaments.config.Messages;
 import me.mattstudios.mf.base.CommandManager;
-import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 public final class XLTournamentsPlugin extends JavaPlugin implements XLTournamentsAPI {
@@ -48,9 +46,6 @@ public final class XLTournamentsPlugin extends JavaPlugin implements XLTournamen
         getLogger().info("         Copyright (c) Zithium Studios 2026. All Rights Reserved.");
         getLogger().info("");
         getLogger().info("Loading plugin..");
-
-        loadMetrics();
-
 
         saveDefaultConfig();
         (messagesFile = new ConfigHandler(this, "messages")).saveDefaultConfig();
@@ -115,16 +110,6 @@ public final class XLTournamentsPlugin extends JavaPlugin implements XLTournamen
         tournamentManager.onDisable(true);
         tournamentManager.onEnable();
 
-    }
-
-    private void loadMetrics() {
-        if (getConfig().getBoolean("enable_metrics")) {
-            getLogger().log(Level.INFO, "Loading bstats metrics.");
-            int pluginId = 19726;
-            @SuppressWarnings("unused")
-            Metrics metrics = new Metrics(this, pluginId);
-        }
-        getLogger().log(Level.INFO, "Metrics are disabled.");
     }
 
     public HookManager getHookManager() {
