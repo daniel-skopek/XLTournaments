@@ -201,11 +201,12 @@ public class TournamentManager {
 
         objective.addTournament(tournament);
         tournament.updateStatus();
+
+        plugin.getStorageManager().getStorageHandler().createTournamentTable(identifier);
+
         if (tournament.getStatus() == TournamentStatus.ACTIVE) {
             tournament.start(false);
         }
-
-        plugin.getStorageManager().getStorageHandler().createTournamentTable(identifier);
 
         tournaments.put(identifier, tournament);
         logger.info("Loaded '" + identifier + "' tournament.");

@@ -195,6 +195,7 @@ public class Tournament {
     public void update() {
         updating = true;
 
+        if (sortedParticipants == null) sortedParticipants = new LinkedHashMap<>();
         sortedParticipants.clear();
         for (Map.Entry<UUID, Integer> entry : participants.entrySet()) {
             storageHandler.updateParticipant(getIdentifier(), entry.getKey(), entry.getValue());

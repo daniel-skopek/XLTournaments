@@ -193,7 +193,7 @@ public class MySQLHandler implements StorageHandler {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null;
+        return new LinkedHashMap<>();
     }
 
     @Override
@@ -211,7 +211,7 @@ public class MySQLHandler implements StorageHandler {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null;
+        return new LinkedHashMap<>();
     }
 
     @Override

@@ -196,7 +196,7 @@ public class SQLiteHandler implements StorageHandler {
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
-        return null;
+        return new LinkedHashMap<>();
     }
 
     @Override
@@ -214,7 +214,7 @@ public class SQLiteHandler implements StorageHandler {
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
-        return null;
+        return new LinkedHashMap<>();
     }
 
     @Override
