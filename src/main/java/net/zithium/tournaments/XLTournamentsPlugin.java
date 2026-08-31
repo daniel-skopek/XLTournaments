@@ -14,6 +14,7 @@ import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.storage.StorageManager;
 import net.zithium.tournaments.tournament.Tournament;
 import net.zithium.tournaments.tournament.TournamentManager;
+import net.zithium.tournaments.utility.TaskScheduler;
 import net.zithium.tournaments.config.Messages;
 import me.mattstudios.mf.base.CommandManager;
 import org.bstats.bukkit.Metrics;
@@ -81,14 +82,13 @@ public final class XLTournamentsPlugin extends JavaPlugin implements XLTournamen
             new WebhookListener(this);
         }
 
-        Bukkit.getScheduler().scheduleSyncDelayedTask(this, () -> {
+        TaskScheduler.runSyncLater(this, () -> {
             objectiveManager.onEnable();
             tournamentManager.onEnable();
-
             if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
                 new PlaceholderAPIHook(this).register();
             }
-        });
+        }, 1L);
     }
 
     @Override

@@ -10,6 +10,8 @@ import net.zithium.tournaments.config.ConfigHandler;
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.storage.StorageHandler;
 import net.zithium.tournaments.task.TournamentUpdateTask;
+import net.zithium.tournaments.utility.TaskScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -20,7 +22,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.permissions.Permission;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.util.*;
@@ -35,7 +36,7 @@ public class TournamentManager {
     private Map<String, Tournament> tournaments;
     private boolean listenersRegistered;
 
-    private BukkitTask timerTask;
+    private ScheduledTask timerTask;
 
     public TournamentManager(XLTournamentsPlugin plugin) {
         this.plugin = plugin;
@@ -95,9 +96,9 @@ public class TournamentManager {
             loadPlayerCache(player);
         }
 
-        timerTask = new TournamentUpdateTask(this).runTaskTimer(plugin, 100L, 20L);
+        timerTask = TaskScheduler.runSyncTimer(plugin, new TournamentUpdateTask(this), 100L, 20L);
 
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> tournaments.values().forEach(Tournament::update));
+        TaskScheduler.runAsync(plugin, () -> tournaments.values().forEach(Tournament::update));
     }
 
     /**
@@ -109,11 +110,11 @@ public class TournamentManager {
      */
     public void onDisable(boolean reload) {
         timerTask.cancel();
-        Bukkit.getScheduler().cancelTasks(plugin);
+        TaskScheduler.cancelTasks(plugin);
         plugin.getLogger().info("Saving player data to database..");
 
         tournaments.values().forEach(tournament -> {
-            BukkitTask task = tournament.getUpdateTask();
+            ScheduledTask task = tournament.getUpdateTask();
             if (task != null) {
                 task.cancel();
             }
@@ -140,12 +141,12 @@ public class TournamentManager {
     public void loadPlayerCache(Player player) {
         UUID uuid = player.getUniqueId();
         StorageHandler handler = plugin.getStorageManager().getStorageHandler();
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+        TaskScheduler.runAsync(plugin, () -> {
 
             List<String> actions = new ArrayList<>(handler.getPlayerQueueActions(uuid.toString()));
             if (!actions.isEmpty()) {
                 plugin.getStorageManager().getStorageHandler().removeQueueActions(uuid.toString());
-                Bukkit.getScheduler().runTask(plugin, () -> plugin.getActionManager().executeActions(player, actions));
+                TaskScheduler.runSync(plugin, () -> plugin.getActionManager().executeActions(player, actions));
             }
 
             for (Tournament tournament : getTournaments()) {
@@ -161,7 +162,7 @@ public class TournamentManager {
                     } else {
                         tournament.addParticipant(uuid, 0, true);
                     }
-                    Bukkit.getScheduler().runTask(plugin, () -> plugin.getActionManager().executeActions(player, tournament.getParticipationActions()));
+                    TaskScheduler.runSync(plugin, () -> plugin.getActionManager().executeActions(player, tournament.getParticipationActions()));
                 }
             }
         });
@@ -169,7 +170,7 @@ public class TournamentManager {
 
     public void savePlayerCache(UUID uuid) {
         StorageHandler handler = plugin.getStorageManager().getStorageHandler();
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+        TaskScheduler.runAsync(plugin, () -> {
             for (Tournament tournament : getTournaments(uuid)) {
                 handler.setPlayerScore(tournament.getIdentifier(), uuid.toString(), tournament.getScore(uuid));
                 tournament.removeParticipant(uuid);

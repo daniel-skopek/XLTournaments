@@ -10,13 +10,12 @@ import net.zithium.tournaments.tournament.Tournament;
 import net.zithium.tournaments.tournament.TournamentManager;
 import net.zithium.tournaments.tournament.TournamentStatus;
 import net.zithium.tournaments.utility.Timeline;
-import org.bukkit.Bukkit;
+import net.zithium.tournaments.utility.TaskScheduler;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.Iterator;
 
-public class TournamentUpdateTask extends BukkitRunnable {
+public class TournamentUpdateTask implements Runnable {
 
     private static final JavaPlugin JAVA_PLUGIN = JavaPlugin.getProvidingPlugin(XLTournamentsPlugin.class);
     private final TournamentManager tournamentManager;
@@ -25,6 +24,7 @@ public class TournamentUpdateTask extends BukkitRunnable {
         this.tournamentManager = tournamentManager;
     }
 
+    @Override
     public void run() {
         Iterator<Tournament> iterator = tournamentManager.getTournaments().stream().filter(tournament -> tournament.getStatus() != TournamentStatus.ENDED).iterator(); // Filters out already ended tournaments.
         while (iterator.hasNext()) {
@@ -41,7 +41,7 @@ public class TournamentUpdateTask extends BukkitRunnable {
                 tournament.stop();
 
                 if (tournament.getTimeline() != Timeline.SPECIFIC) {
-                    Bukkit.getScheduler().runTaskLater(JAVA_PLUGIN, () -> {
+                    TaskScheduler.runSyncLater(JAVA_PLUGIN, () -> {
                         tournament.updateStatus();
                         tournament.start(true);
                     }, 100L);

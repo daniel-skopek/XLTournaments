@@ -3,16 +3,17 @@ package net.zithium.tournaments.objective.internal;
 import net.zithium.tournaments.XLTournamentsPlugin;
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.tournament.Tournament;
+import net.zithium.tournaments.utility.TaskScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
 public class PlaytimeObjective extends XLObjective {
 
     private final JavaPlugin plugin = JavaPlugin.getProvidingPlugin(XLTournamentsPlugin.class);
-    private BukkitTask task;
+    private ScheduledTask task;
 
     public PlaytimeObjective() {
         super("PLAYTIME");
@@ -22,7 +23,7 @@ public class PlaytimeObjective extends XLObjective {
     public boolean loadTournament(Tournament tournament, FileConfiguration config) {
         if (task == null || task.isCancelled()) {
             int intervalTicks = plugin.getConfig().getInt("playtime_objective_task_update", 200);
-            task = Bukkit.getScheduler().runTaskTimer(plugin, this::updatePlaytime, 20L, intervalTicks);
+            task = TaskScheduler.runSyncTimer(plugin, this::updatePlaytime, 20L, intervalTicks);
         }
         return true;
     }

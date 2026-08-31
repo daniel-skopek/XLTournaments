@@ -1,6 +1,6 @@
 package net.zithium.tournaments.discord;
 
-import org.bukkit.Bukkit;
+import net.zithium.tournaments.utility.TaskScheduler;
 import org.bukkit.plugin.Plugin;
 
 import java.io.IOException;
@@ -31,7 +31,7 @@ public class WebhookQueue {
     }
 
     private void processNext(long delayTicks) {
-        Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, this::process, delayTicks);
+        TaskScheduler.runAsyncLater(plugin, this::process, delayTicks);
     }
 
     private void process() {

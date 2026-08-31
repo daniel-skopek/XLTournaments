@@ -14,12 +14,13 @@ import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.storage.StorageHandler;
 import net.zithium.tournaments.utility.TimeUtil;
 import net.zithium.tournaments.utility.Timeline;
+import net.zithium.tournaments.utility.TaskScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permission;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -35,7 +36,7 @@ public class Tournament {
     private final String identifier;
 
     private UUID gameUniqueId;
-    private BukkitTask updateTask;
+    private ScheduledTask updateTask;
     private TournamentStatus status;
     private ZonedDateTime startDate, endDate;
     private long startTimeMillis, endTimeMillis;
@@ -110,12 +111,12 @@ public class Tournament {
         // If it's the first time, asynchronously clear participants.
         if (clearParticipants) {
             if (debug()) plugin.getLogger().log(Level.INFO, "Clearing tournament participants.");
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, this::clearParticipants);
+            TaskScheduler.runAsync(plugin, this::clearParticipants);
 
             // If there are start actions defined, execute them for all online players.
             if (!startActions.isEmpty()) {
                 if (debug()) plugin.getLogger().log(Level.INFO, "Executing start actions.");
-                Bukkit.getScheduler().runTask(plugin, () -> actionManager.executeActions(null, startActions));
+                TaskScheduler.runSync(plugin, () -> actionManager.executeActions(null, startActions));
             }
         }
 
@@ -125,13 +126,13 @@ public class Tournament {
         gameUniqueId = UUID.randomUUID();
 
         // Schedule a task to periodically update the tournament (asynchronously).
-        updateTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+        updateTask = TaskScheduler.runAsyncTimer(plugin, () -> {
             // If not already updating, perform the update.
             if (!isUpdating()) update();
         }, 0, leaderboardRefresh * 20L);
 
         // Trigger a TournamentStartEvent to notify other plugins.
-        Bukkit.getScheduler().runTask(plugin, () ->
+        TaskScheduler.runSync(plugin, () ->
                 Bukkit.getPluginManager().callEvent(new TournamentStartEvent(this))
         );
         if (debug()) plugin.getLogger().log(Level.INFO, "Tournament has been started.");
@@ -153,7 +154,7 @@ public class Tournament {
         status = TournamentStatus.ENDED;
         
         if (updateTask != null) updateTask.cancel();
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, this::update);
+        TaskScheduler.runAsync(plugin, this::update);
 
         Bukkit.getPluginManager().callEvent(new TournamentEndEvent(this, new TournamentData(identifier, gameUniqueId, new LinkedHashMap<>(sortedParticipants))));
 
@@ -163,12 +164,12 @@ public class Tournament {
             OfflinePlayer player = getPlayerFromPosition(position);
             if (player == null) continue;
             if (player.isOnline()) {
-                Bukkit.getScheduler().runTask(plugin, () -> actionManager.executeActions(player.getPlayer(), rewards.get(position)));
+                TaskScheduler.runSync(plugin, () -> actionManager.executeActions(player.getPlayer(), rewards.get(position)));
                 if (debug()) plugin.getLogger().log(Level.INFO, "Executed end actions for " + player.getName() + "(" + player.getUniqueId() + ")");
                 continue;
             }
 
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            TaskScheduler.runAsync(plugin, () -> {
                 for (String action : rewards.get(position)) {
                     storageHandler.addActionToQueue(player.getUniqueId().toString(), action);
                     if (debug()) plugin.getLogger().log(Level.INFO, "Queued end actions for " + player.getName() + "(" + player.getUniqueId() + ")");
@@ -178,7 +179,7 @@ public class Tournament {
 
         if (!endActions.isEmpty()) {
             if (debug()) plugin.getLogger().log(Level.INFO, "Executing end actions.");
-            Bukkit.getScheduler().runTask(plugin, () -> actionManager.executeActions(null, endActions));
+            TaskScheduler.runSync(plugin, () -> actionManager.executeActions(null, endActions));
         }
         if (debug()) plugin.getLogger().log(Level.INFO, "Tournament has been stopped.");
 
@@ -385,10 +386,10 @@ public class Tournament {
         if (hasFinishedChallenge(uuid)) {
             storageHandler.updateParticipant(getIdentifier(), uuid, participants.get(uuid));
 
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            TaskScheduler.runAsync(plugin, () -> {
                 int position = getPlayersCompletedChallenge();
                 Player player = Bukkit.getPlayer(uuid);
-                Bukkit.getScheduler().runTask(plugin, () -> {
+                TaskScheduler.runSync(plugin, () -> {
                     if (rewards.containsKey(position)) {
                         actionManager.executeActions(player, rewards.get(position));
                     }
@@ -531,7 +532,7 @@ public class Tournament {
         return endDate;
     }
 
-    public BukkitTask getUpdateTask() {
+    public ScheduledTask getUpdateTask() {
         return updateTask;
     }
 

@@ -1,6 +1,5 @@
 plugins {
     id 'java'
-    id 'io.github.goooler.shadow' version '8.1.8'
 }
 
 group = 'net.zithium'
@@ -28,25 +27,22 @@ repositories {
 }
 
 dependencies {
-    implementation('com.zaxxer:HikariCP:5.1.0')
-    implementation('me.mattstudios.utils:matt-framework:1.4.6')
-    implementation("com.github.cryptomorin:XSeries:13.6.0")
+    // Runtime libraries are provided by Paper's library loader (see plugin.yml `libraries`).
+    compileOnly('com.zaxxer:HikariCP:5.1.0')
+    compileOnly('me.mattstudios.utils:matt-framework:1.4.6')
+    compileOnly("com.github.cryptomorin:XSeries:13.7.0")
 
-    implementation('dev.triumphteam:triumph-gui:3.1.13')
+    compileOnly('dev.triumphteam:triumph-gui:3.1.13')
 
-    implementation('org.bstats:bstats-bukkit:3.0.2')
+    compileOnly('org.bstats:bstats-bukkit:3.0.2')
 
     // Adventure
-    implementation "net.kyori:adventure-text-minimessage:4.24.0"
-
-    // XSeries
-    implementation("com.github.cryptomorin:XSeries:13.7.0")
+    compileOnly "net.kyori:adventure-text-minimessage:4.24.0"
 
     // Apache
-    implementation 'org.apache.commons:commons-lang3:3.12.0'
-    implementation "io.papermc:paperlib:1.0.6"
+    compileOnly 'org.apache.commons:commons-lang3:3.12.0'
 
-    compileOnly 'org.spigotmc:spigot-api:1.20.6-R0.1-SNAPSHOT'
+    compileOnly 'io.papermc.paper:paper-api:1.20.6-R0.1-SNAPSHOT'
     compileOnly 'com.mojang:authlib:1.5.21'
 
     // EXTERNAL OBJECTIVES
@@ -68,23 +64,4 @@ processResources {
     filesMatching('plugin.yml') {
         expand props
     }
-}
-
-build {
-    dependsOn(shadowJar)
-}
-
-shadowJar {
-    minimize()
-    archiveFileName = "XLTournaments-${project.version}.jar"
-    relocate 'dev.triumphteam.gui', 'net.zithium.tournaments.libs.gui' // GUI Library
-    relocate 'me.mattstudios.mf', 'net.zithium.tournaments.libs.command' // Command Library
-    relocate 'org.codemc.worldguardwrapper', 'net.zithium.tournaments.libs.worldguardwrapper' // Worldguard Wrapper
-    relocate 'com.zaxxer.hikari', 'net.zithium.tournaments.libs.hikari' // SQLite (HikariCP)
-    relocate 'org.bstats', 'net.zithium.tournaments.libs.metrics' // bStats
-   // relocate 'net.zithium.library', 'net.zithium.tournaments.libs.library' // ZithiumLibrary
-    relocate 'com.cryptomorin.xseries', 'net.zithium.tournaments.libs.xseries' // XSound, XMaterial (TEMPORARY)
-
-    relocate "net.kyori.adventure", "net.zithium.tournaments.libs.adventure"
-
 }
