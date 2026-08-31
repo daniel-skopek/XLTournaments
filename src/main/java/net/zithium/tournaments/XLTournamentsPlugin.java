@@ -1,5 +1,6 @@
 package net.zithium.tournaments;
 
+import dev.triumphteam.gui.TriumphGui;
 import dev.triumphteam.gui.guis.BaseGui;
 import net.zithium.tournaments.action.ActionManager;
 import net.zithium.tournaments.command.TournamentsCommand;
@@ -46,6 +47,8 @@ public final class XLTournamentsPlugin extends JavaPlugin implements XLTournamen
         getLogger().info("         Copyright (c) Zithium Studios 2026. All Rights Reserved.");
         getLogger().info("");
         getLogger().info("Loading plugin..");
+
+        TriumphGui.init(this);
 
         saveDefaultConfig();
         (messagesFile = new ConfigHandler(this, "messages")).saveDefaultConfig();
