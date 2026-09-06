@@ -58,6 +58,7 @@ public class Tournament {
     private List<String> participationActions;
     private final Map<UUID, Integer> participants;
     private Map<UUID, Integer> sortedParticipants;
+    private final Object sortedParticipantsLock = new Object();
 
     private final Map<String, Object> meta;
 
@@ -156,7 +157,12 @@ public class Tournament {
         if (updateTask != null) updateTask.cancel();
         TaskScheduler.runAsync(plugin, this::update);
 
-        Bukkit.getPluginManager().callEvent(new TournamentEndEvent(this, new TournamentData(identifier, gameUniqueId, new LinkedHashMap<>(sortedParticipants))));
+        final Map<UUID, Integer> sortedParticipantsSnapshot;
+        synchronized (sortedParticipantsLock) {
+            sortedParticipantsSnapshot = new LinkedHashMap<>(sortedParticipants);
+        }
+
+        Bukkit.getPluginManager().callEvent(new TournamentEndEvent(this, new TournamentData(identifier, gameUniqueId, sortedParticipantsSnapshot)));
 
         if (challenge) return;
 
@@ -195,13 +201,15 @@ public class Tournament {
     public void update() {
         updating = true;
 
-        if (sortedParticipants == null) sortedParticipants = new LinkedHashMap<>();
-        sortedParticipants.clear();
         for (Map.Entry<UUID, Integer> entry : participants.entrySet()) {
             storageHandler.updateParticipant(getIdentifier(), entry.getKey(), entry.getValue());
         }
 
-        sortedParticipants = storageHandler.getTopPlayers(identifier);
+        synchronized (sortedParticipantsLock) {
+            if (sortedParticipants == null) sortedParticipants = new LinkedHashMap<>();
+            sortedParticipants.clear();
+            sortedParticipants = storageHandler.getTopPlayers(identifier);
+        }
         updating = false;
     }
 
@@ -211,13 +219,17 @@ public class Tournament {
     public void clearParticipants() {
         if (debug()) plugin.getLogger().log(Level.INFO, "Clearing participants for", identifier);
         participants.clear();
-        sortedParticipants.clear();
+        synchronized (sortedParticipantsLock) {
+            sortedParticipants.clear();
+        }
         storageHandler.clearParticipants(identifier);
     }
 
     public void clearParticipant(UUID uuid) {
         participants.remove(uuid);
-        sortedParticipants.remove(uuid);
+        synchronized (sortedParticipantsLock) {
+            sortedParticipants.remove(uuid);
+        }
         storageHandler.clearParticipant(identifier, uuid);
     }
 
@@ -303,8 +315,10 @@ public class Tournament {
     }
 
     public int getPosition(UUID uuid) {
-        if (sortedParticipants.containsKey(uuid)) {
-            return (new ArrayList<>(sortedParticipants.keySet())).indexOf(uuid) + 1;
+        synchronized (sortedParticipantsLock) {
+            if (sortedParticipants.containsKey(uuid)) {
+                return (new ArrayList<>(sortedParticipants.keySet())).indexOf(uuid) + 1;
+            }
         }
         return 0;
     }
@@ -320,15 +334,17 @@ public class Tournament {
      * @return The OfflinePlayer associated with the given position or null if not found.
      */
     public OfflinePlayer getPlayerFromPosition(int position) {
-        if (position < 1 || position > sortedParticipants.size()) return null;
-        int count = 1;
-        for (UUID uuid : sortedParticipants.keySet()) {
-            if (count == position) {
-                return Bukkit.getOfflinePlayer(uuid);
+        synchronized (sortedParticipantsLock) {
+            if (position < 1 || position > sortedParticipants.size()) return null;
+            int count = 1;
+            for (UUID uuid : sortedParticipants.keySet()) {
+                if (count == position) {
+                    return Bukkit.getOfflinePlayer(uuid);
+                }
+                count++;
             }
-            count++;
+            return null;
         }
-        return null;
     }
 
     /**
@@ -339,19 +355,21 @@ public class Tournament {
      * @return The score of the participant at the given position, or 0 if the position is invalid or the score is non-positive.
      */
     public int getScoreFromPosition(int position) {
-        // Check if the specified position is out of bounds or non-positive.
-        if (position < 1 || position > sortedParticipants.size()) {
-            return 0;
+        synchronized (sortedParticipantsLock) {
+            // Check if the specified position is out of bounds or non-positive.
+            if (position < 1 || position > sortedParticipants.size()) {
+                return 0;
+            }
+
+            // Get the UUID of the participant at the specified position.
+            UUID uuid = (UUID) sortedParticipants.keySet().toArray()[position - 1];
+
+            // Get the score of the participant at the specified position.
+            int score = sortedParticipants.get(uuid);
+
+            // Return the score (positive or 0).
+            return Math.max(0, score);
         }
-
-        // Get the UUID of the participant at the specified position.
-        UUID uuid = (UUID) sortedParticipants.keySet().toArray()[position - 1];
-
-        // Get the score of the participant at the specified position.
-        int score = sortedParticipants.get(uuid);
-
-        // Return the score (positive or 0).
-        return Math.max(0, score);
     }
 
     /**
@@ -446,7 +464,9 @@ public class Tournament {
     }
 
     public Map<UUID, Integer> getSortedParticipants() {
-        return sortedParticipants;
+        synchronized (sortedParticipantsLock) {
+            return new LinkedHashMap<>(sortedParticipants);
+        }
     }
 
     public double getParticipationCost() {
