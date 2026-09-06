@@ -10,6 +10,8 @@ import net.zithium.tournaments.tournament.Tournament;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,14 @@ import java.util.regex.Pattern;
 public class TextUtil {
 
     private static final NumberFormat NUMBER_FORMAT = NumberFormat.getNumberInstance(Locale.US);
+
+    static {
+        if (NUMBER_FORMAT instanceof DecimalFormat) {
+            DecimalFormatSymbols symbols = ((DecimalFormat) NUMBER_FORMAT).getDecimalFormatSymbols();
+            symbols.setGroupingSeparator(' ');
+            ((DecimalFormat) NUMBER_FORMAT).setDecimalFormatSymbols(symbols);
+        }
+    }
 
     public static boolean isMCMarket() {
         String hash = "%__FILEHASH__%";
@@ -69,7 +79,7 @@ public class TextUtil {
                 .replace("{END_MONTH}", tournament.getEndMonth())
                 .replace("{PLAYER_POSITION}", String.valueOf(tournament.getPosition(uuid)))
                 .replace("{PLAYER_POSITION_FORMATTED}", TextUtil.getNumberFormatted(tournament.getPosition(uuid)))
-                .replace("{PLAYER_SCORE}", String.valueOf(tournament.getScore(uuid)))
+                .replace("{PLAYER_SCORE}", TextUtil.getNumberFormatted(tournament.getScore(uuid)))
                 .replace("{PLAYER_SCORE_FORMATTED}", TextUtil.getNumberFormatted(tournament.getScore(uuid)))
                 .replace("{PLAYER_SCORE_TIME_FORMATTED}", TimeUtil.formatTime(tournament.getScore(uuid)))
                 .replace("{TIME_REMAINING}", tournament.getTimeRemaining());
