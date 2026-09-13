@@ -16,6 +16,7 @@ import net.zithium.tournaments.storage.StorageManager;
 import net.zithium.tournaments.tournament.Tournament;
 import net.zithium.tournaments.tournament.TournamentManager;
 import net.zithium.tournaments.utility.TaskScheduler;
+import net.zithium.tournaments.utility.AntiFarmTracker;
 import net.zithium.tournaments.config.Messages;
 import me.mattstudios.mf.base.CommandManager;
 import org.bukkit.Bukkit;
@@ -51,6 +52,7 @@ public final class XLTournamentsPlugin extends JavaPlugin implements XLTournamen
         TriumphGui.init(this);
 
         saveDefaultConfig();
+        AntiFarmTracker.getInstance().initialize(this);
         (messagesFile = new ConfigHandler(this, "messages")).saveDefaultConfig();
         (menuFile = new ConfigHandler(this, "menu")).saveDefaultConfig();
         Messages.setConfiguration(messagesFile.getConfig());
@@ -104,6 +106,7 @@ public final class XLTournamentsPlugin extends JavaPlugin implements XLTournamen
 
     public void reload() {
         reloadConfig();
+        AntiFarmTracker.getInstance().loadConfig(this);
         messagesFile.reload();
         menuFile.reload();
         Messages.setConfiguration(messagesFile.getConfig());

@@ -9,6 +9,7 @@ import net.zithium.tournaments.XLTournamentsPlugin;
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.objective.hook.TEBlockExplode;
 import net.zithium.tournaments.tournament.Tournament;
+import net.zithium.tournaments.utility.AntiFarmTracker;
 import net.zithium.tournaments.utility.universal.XBlock;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -69,6 +70,8 @@ public class BreakObjective extends XLObjective {
         if (XBlock.isCrop(block) && !XBlock.isCropFullyGrown(block)) {
             return;
         }
+
+        if (!AntiFarmTracker.getInstance().allowBlockBreak(player, block)) return;
 
         for (Tournament tournament : getTournaments()) {
             if (!canExecute(tournament, player) || block.hasMetadata("XLTPlacedBlock")) {

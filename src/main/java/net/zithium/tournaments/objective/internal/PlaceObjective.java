@@ -7,6 +7,7 @@ package net.zithium.tournaments.objective.internal;
 
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.tournament.Tournament;
+import net.zithium.tournaments.utility.AntiFarmTracker;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -32,6 +33,9 @@ public class PlaceObjective extends XLObjective {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
+
+        if (!AntiFarmTracker.getInstance().allowBlockPlace(player, event.getBlock())) return;
+
         for(Tournament tournament : getTournaments()) {
             if(canExecute(tournament, player)) {
 

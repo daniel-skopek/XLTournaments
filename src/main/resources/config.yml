@@ -52,3 +52,24 @@ placeholderapi_objective_task_update: 60
 # Only applicable for PLAYTIME objective type
 # How many ticks until we fetch new playtime data?
 playtime_objective_task_update: 200 # 10 seconds
+
+# Anti-farm protection per objective. These are targeted cooldowns/rate-limits
+# that block specific farming/spam patterns WITHOUT punishing normal play — a
+# player standing still and clicking still earns score.
+# Set a value to 0 to disable a specific check.
+# NOTE: fishing and mob kills are intentionally not gated — a legit player can
+# catch or kill faster than any reasonable cooldown, so an interval has no
+# correlation with AFK and only causes false positives.
+anti_farm:
+  # Master switch. Setting this to false disables all anti-farm checks below.
+  enabled: true
+  # BLOCK_BREAK: how long the same block position is ignored after being broken.
+  # Blocks farming the same regenerating block repeatedly (snow under a snow
+  # golem, cobblestone generators, sugar cane loops).
+  block_break_same_position_seconds: 10
+  # BLOCK_PLACE: same as above, for placing blocks at the same position repeatedly.
+  block_place_same_position_seconds: 10
+  # PLAYTIME: how many seconds a player may remain fully idle (no movement or
+  # camera rotation) before their playtime stops counting. Generous to avoid
+  # false positives for players who stand still while interacting.
+  playtime_afk_seconds: 300
