@@ -2,6 +2,7 @@ package net.zithium.tournaments.objective.internal;
 
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.tournament.Tournament;
+import net.zithium.tournaments.utility.AntiAfkTracker;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -42,6 +43,8 @@ public class PlayerConsumeObjective extends XLObjective {
         }
 
         Material consumedMaterial = consumedItem.getType();
+
+        if (!AntiAfkTracker.getInstance().shouldCount(player, "PLAYER_CONSUME")) return;
 
         for (Tournament tournament : getTournaments()) {
             if (!canExecute(tournament, player)) continue;

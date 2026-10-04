@@ -3,29 +3,19 @@ package net.zithium.tournaments.objective.internal;
 import net.zithium.tournaments.XLTournamentsPlugin;
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.tournament.Tournament;
+import net.zithium.tournaments.utility.AntiAfkTracker;
 import net.zithium.tournaments.utility.TaskScheduler;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class PlaytimeObjective extends XLObjective {
 
     private final JavaPlugin plugin = JavaPlugin.getProvidingPlugin(XLTournamentsPlugin.class);
-    private final Map<UUID, Long> lastActivity = new ConcurrentHashMap<>();
     private ScheduledTask task;
 
-    private boolean antiFarmEnabled;
     private long afkWindowMillis;
 
     public PlaytimeObjective() {
@@ -34,7 +24,6 @@ public class PlaytimeObjective extends XLObjective {
 
     @Override
     public boolean loadTournament(Tournament tournament, FileConfiguration config) {
-        antiFarmEnabled = plugin.getConfig().getBoolean("anti_farm.enabled", true);
         afkWindowMillis = plugin.getConfig().getLong("anti_farm.playtime_afk_seconds", 300) * 1000L;
 
         if (task == null || task.isCancelled()) {
@@ -45,17 +34,14 @@ public class PlaytimeObjective extends XLObjective {
     }
 
     private void updatePlaytime() {
-        long now = System.currentTimeMillis();
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            UUID uuid = player.getUniqueId();
+        AntiAfkTracker tracker = AntiAfkTracker.getInstance();
+        boolean checkActivity = tracker.isEnabled() && tracker.isObjectiveEnabled("PLAYTIME");
 
-            if (antiFarmEnabled) {
-                Long last = lastActivity.get(uuid);
-                if (last == null) {
-                    lastActivity.put(uuid, now);
-                } else if (now - last > afkWindowMillis) {
-                    continue;
-                }
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            // Ignore vertical bobbing from standing in water; only genuine
+            // horizontal movement or camera rotation counts as activity.
+            if (checkActivity && !tracker.hasRecentActivity(player, afkWindowMillis)) {
+                continue;
             }
 
             for (Tournament tournament : getTournaments()) {
@@ -67,21 +53,5 @@ public class PlaytimeObjective extends XLObjective {
                 }
             }
         }
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlayerMove(PlayerMoveEvent event) {
-        if (!antiFarmEnabled) return;
-        lastActivity.put(event.getPlayer().getUniqueId(), System.currentTimeMillis());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        lastActivity.put(event.getPlayer().getUniqueId(), System.currentTimeMillis());
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerQuit(PlayerQuitEvent event) {
-        lastActivity.remove(event.getPlayer().getUniqueId());
     }
 }

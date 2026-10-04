@@ -7,6 +7,7 @@ package net.zithium.tournaments.objective.internal;
 
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.tournament.Tournament;
+import net.zithium.tournaments.utility.AntiAfkTracker;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -40,6 +41,8 @@ public class MobKillsObjective extends XLObjective {
         if(entity instanceof Player || entity.getKiller() == null) return;
 
         Player player = entity.getKiller();
+
+        if (!AntiAfkTracker.getInstance().shouldCount(player, "MOB_KILLS")) return;
 
         for(Tournament tournament : getTournaments()) {
             if(canExecute(tournament, player)) {

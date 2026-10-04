@@ -7,6 +7,7 @@ package net.zithium.tournaments.objective.internal;
 
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.tournament.Tournament;
+import net.zithium.tournaments.utility.AntiAfkTracker;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -29,6 +30,8 @@ public class PlayerFishObjective extends XLObjective {
         if (event.getState() != PlayerFishEvent.State.CAUGHT_FISH) return;
 
         Player player = event.getPlayer();
+        if (!AntiAfkTracker.getInstance().shouldCount(player, "PLAYER_FISH")) return;
+
         for (Tournament tournament : getTournaments()) {
             if (canExecute(tournament, player)) {
                 tournament.addScore(player.getUniqueId(), 1);

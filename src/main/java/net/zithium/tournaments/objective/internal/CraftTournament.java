@@ -2,6 +2,7 @@ package net.zithium.tournaments.objective.internal;
 
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.tournament.Tournament;
+import net.zithium.tournaments.utility.AntiAfkTracker;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -52,6 +53,8 @@ public class CraftTournament extends XLObjective {
             }
             amount = craftedItem.getAmount();
         }
+
+        if (!AntiAfkTracker.getInstance().shouldCount(player, "ITEM_CRAFT")) return;
 
         // Apply the score to active tournaments
         for (Tournament tournament : getTournaments()) {

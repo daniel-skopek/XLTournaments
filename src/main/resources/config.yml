@@ -57,9 +57,6 @@ playtime_objective_task_update: 200 # 10 seconds
 # that block specific farming/spam patterns WITHOUT punishing normal play — a
 # player standing still and clicking still earns score.
 # Set a value to 0 to disable a specific check.
-# NOTE: fishing and mob kills are intentionally not gated — a legit player can
-# catch or kill faster than any reasonable cooldown, so an interval has no
-# correlation with AFK and only causes false positives.
 anti_farm:
   # Master switch. Setting this to false disables all anti-farm checks below.
   enabled: true
@@ -73,3 +70,42 @@ anti_farm:
   # camera rotation) before their playtime stops counting. Generous to avoid
   # false positives for players who stand still while interacting.
   playtime_afk_seconds: 300
+
+# Anti-AFK protection. Suppresses score for players who keep FARMING an
+# objective while being effectively AFK (auto-fishing, auto-eating, autocraft,
+# kill-aura grinders, held-mouse-button loops). A score is refused only when the
+# player is BOTH "calm" (no horizontal movement and no camera rotation for
+# calm_window_seconds) AND the action looks automated (regular autoclicker
+# intervals OR too many repeated actions while calm). Active players are never
+# affected. This protects the objectives below; block break/place keep using the
+# anti_farm cooldowns above.
+anti_afk:
+  # Master switch. false disables all anti-AFK checks below.
+  enabled: true
+  # A player is considered "calm" when they have neither changed block on the
+  # X/Z plane nor rotated the camera for this many seconds. Vertical bobbing
+  # while standing in water is ignored, so fishing in a pool while truly idle
+  # still counts as calm.
+  calm_window_seconds: 180
+  # Minimum camera rotation (degrees) in a single move event to count as activity.
+  # Kept low so even slow, genuine camera movement counts and never gets flagged.
+  min_rotation_delta: 0.1
+  # Minimum number of actions of the same type performed while calm before they
+  # stop counting. Gives a grace period and avoids punishing occasional actions.
+  min_actions_while_calm: 5
+  # Autoclicker/regularity detection: how many recent actions of the same type
+  # to remember, how many intervals are required before judging, and the maximum
+  # coefficient of variation (stddev/mean) that is still considered "bot-like".
+  # Lower regularity_max_cv = stricter. Set regularity_min_samples very high to
+  # effectively disable the regularity check (only the "sustained" check is used).
+  regularity_samples: 10
+  regularity_min_samples: 6
+  regularity_max_cv: 0.08
+  # Per-objective toggles.
+  objectives:
+    PLAYER_FISH: true
+    MOB_KILLS: true
+    PLAYTIME: true
+    ITEM_CRAFT: true
+    POTION_BREW: true
+    PLAYER_CONSUME: true

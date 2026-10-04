@@ -3,6 +3,7 @@ package net.zithium.tournaments.objective.internal;
 import net.zithium.tournaments.XLTournamentsPlugin;
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.tournament.Tournament;
+import net.zithium.tournaments.utility.AntiAfkTracker;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -59,9 +60,11 @@ public class PotionBrewObjective extends XLObjective {
 
                         // Only award points if the potion has not been scored
                         if (value == null) {
-                            for (Tournament tournament : getTournaments()) {
-                                if (canExecute(tournament, player)) {
-                                    tournament.addScore(player.getUniqueId(), 1);
+                            if (AntiAfkTracker.getInstance().shouldCount(player, "POTION_BREW")) {
+                                for (Tournament tournament : getTournaments()) {
+                                    if (canExecute(tournament, player)) {
+                                        tournament.addScore(player.getUniqueId(), 1);
+                                    }
                                 }
                             }
 
