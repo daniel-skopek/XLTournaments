@@ -8,6 +8,7 @@ package net.zithium.tournaments.objective.internal;
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.tournament.Tournament;
 import net.zithium.tournaments.utility.AntiAfkTracker;
+import net.zithium.tournaments.utility.KillValidator;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -41,6 +42,10 @@ public class MobKillsObjective extends XLObjective {
         if(entity instanceof Player || entity.getKiller() == null) return;
 
         Player player = entity.getKiller();
+
+        // getKiller() can be spoofed by minion/pet/trap plugins; only count
+        // kills where the player actually dealt the final blow.
+        if (!KillValidator.isPlayerKill(player, entity)) return;
 
         if (!AntiAfkTracker.getInstance().shouldCount(player, "MOB_KILLS")) return;
 
