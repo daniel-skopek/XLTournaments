@@ -29,8 +29,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Detects players who keep farming an objective while they are effectively AFK
- * (auto-fishing, auto-eating, auto-crafting, kill-aura grinders, "held mouse
- * button" loops, ...).
+ * (auto-fishing, auto-crafting, kill-aura grinders, "held mouse button" loops,
+ * ...).
  *
  * <p>The design intentionally trades a little detection power for a very low
  * false-positive rate, because a wrongly flagged active player is far worse
@@ -139,7 +139,7 @@ public final class AntiAfkTracker implements Listener {
         regularityMaxCv = config.getDouble("anti_afk.regularity_max_cv", 0.08);
 
         objectiveToggles.clear();
-        for (String objective : new String[]{"PLAYER_FISH", "MOB_KILLS", "PLAYTIME", "ITEM_CRAFT", "POTION_BREW", "PLAYER_CONSUME"}) {
+        for (String objective : new String[]{"PLAYER_FISH", "MOB_KILLS", "PLAYTIME", "ITEM_CRAFT", "POTION_BREW"}) {
             objectiveToggles.put(objective, config.getBoolean("anti_afk.objectives." + objective, true));
         }
     }

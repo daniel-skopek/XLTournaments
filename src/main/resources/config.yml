@@ -125,11 +125,12 @@ anti_afk:
   regularity_samples: 10
   regularity_min_samples: 6
   regularity_max_cv: 0.08
-  # Per-objective toggles.
+  # Per-objective toggles. PLAYER_CONSUME is not listed: consumption is gated by
+  # hunger instead (see PlayerConsumeObjective), which cannot be bypassed by
+  # movement and needs no anti-AFK heuristic.
   objectives:
     PLAYER_FISH: true
     MOB_KILLS: true
     PLAYTIME: true
     ITEM_CRAFT: true
     POTION_BREW: true
-    PLAYER_CONSUME: true

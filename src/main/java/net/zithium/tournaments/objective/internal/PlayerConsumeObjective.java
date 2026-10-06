@@ -2,7 +2,6 @@ package net.zithium.tournaments.objective.internal;
 
 import net.zithium.tournaments.objective.XLObjective;
 import net.zithium.tournaments.tournament.Tournament;
-import net.zithium.tournaments.utility.AntiAfkTracker;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
@@ -42,9 +41,15 @@ public class PlayerConsumeObjective extends XLObjective {
             return;
         }
 
-        Material consumedMaterial = consumedItem.getType();
+        // "Always consumable" items (chorus fruit, honey bottle, golden apples)
+        // can be consumed at full hunger, which makes them infinitely farmable
+        // (e.g. auto-eating in a minecart, where chorus fruit does not teleport).
+        // PlayerItemConsumeEvent is called before the food is applied, so a full
+        // hunger bar here means the item is one of those; skip it. Normal food
+        // requires hunger and is naturally rate-limited by it.
+        if (player.getFoodLevel() >= 20) return;
 
-        if (!AntiAfkTracker.getInstance().shouldCount(player, "PLAYER_CONSUME")) return;
+        Material consumedMaterial = consumedItem.getType();
 
         for (Tournament tournament : getTournaments()) {
             if (!canExecute(tournament, player)) continue;
