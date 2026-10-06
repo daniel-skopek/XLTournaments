@@ -73,26 +73,50 @@ anti_farm:
 
 # Anti-AFK protection. Suppresses score for players who keep FARMING an
 # objective while being effectively AFK (auto-fishing, auto-eating, autocraft,
-# kill-aura grinders, held-mouse-button loops). A score is refused only when the
-# player is BOTH "calm" (no horizontal movement and no camera rotation for
-# calm_window_seconds) AND the action looks automated (regular autoclicker
-# intervals OR too many repeated actions while calm). Active players are never
-# affected. This protects the objectives below; block break/place keep using the
-# anti_farm cooldowns above.
+# kill-aura grinders, held-mouse-button loops). For most objectives a score is
+# refused only when the player is BOTH "calm" (no horizontal movement and no
+# camera rotation for calm_window_seconds) AND the action looks automated
+# (regular autoclicker intervals OR too many repeated actions while calm).
+# PLAYER_FISH is special-cased and judged on actual fishing-rod input instead
+# (see fish_input_timeout_seconds) so that standing still and clicking manually
+# is never punished. Active players are never affected. This protects the
+# objectives below; block break/place keep using the anti_farm cooldowns above.
 anti_afk:
   # Master switch. false disables all anti-AFK checks below.
   enabled: true
   # A player is considered "calm" when they have neither changed block on the
   # X/Z plane nor rotated the camera for this many seconds. Vertical bobbing
-  # while standing in water is ignored, so fishing in a pool while truly idle
-  # still counts as calm.
+  # while standing in water is ignored (only the Y axis moves).
   calm_window_seconds: 180
   # Minimum camera rotation (degrees) in a single move event to count as activity.
   # Kept low so even slow, genuine camera movement counts and never gets flagged.
   min_rotation_delta: 0.1
   # Minimum number of actions of the same type performed while calm before they
   # stop counting. Gives a grace period and avoids punishing occasional actions.
+  # Not used for PLAYER_FISH (see fish_input_timeout_seconds).
   min_actions_while_calm: 5
+  # PLAYER_FISH: a legitimate catch is always preceded by a right-click of the
+  # fishing rod (reeling). A catch that had no rod input within this many seconds
+  # -- or that has bot-regular rod input -- is treated as automation. This does
+  # not penalise a player who simply stands still and clicks, because their
+  # right-clicks are irregular and happen right before every catch.
+  fish_input_timeout_seconds: 2
+  # PLAYER_FISH: auto-fish clients rotate the yaw to fake activity but never
+  # change pitch, because a real mouse moves both axes and it is basically
+  # impossible to rotate the camera for minutes while pitch stays bit-for-bit
+  # identical. If, within the window, a player accumulated at least this much
+  # yaw rotation while their pitch did not change at all and they caught at
+  # least this many fish, the score is refused. A player who moves a real mouse
+  # (pitch changes) or stands still (no yaw) is never affected.
+  #
+  # NOTE: this can also flag a client that locks the pitch (some PvP clients), or
+  # fishing on a continuously rotating platform/boat, because both rotate yaw
+  # without pitch. Set fish_aim_check to false if that becomes a problem. This is
+  # a targeted heuristic against yaw-only fake movement, not a general anti-cheat.
+  fish_aim_check: true
+  fish_aim_window_seconds: 300
+  fish_min_yaw_degrees: 30
+  fish_min_catches_while_pitch_static: 3
   # Autoclicker/regularity detection: how many recent actions of the same type
   # to remember, how many intervals are required before judging, and the maximum
   # coefficient of variation (stddev/mean) that is still considered "bot-like".
