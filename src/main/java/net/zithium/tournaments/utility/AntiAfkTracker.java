@@ -56,17 +56,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * affected. This class does not punish anyone; it only reports whether an
  * objective should award score.</p>
  *
- * <p>Fishing is special-cased in two ways, because catch intervals are random
- * (the bite delay is random) so neither regularity nor "many catches" can
- * separate a bot from a human — and "many catches while calm" wrongly flagged
- * legitimate players who stand still and click:</p>
- * <ul>
- *   <li>a catch with no recent right-click, or with bot-regular right-clicks,
- *       is treated as automation (rod input is the real signal);</li>
- *   <li>a player who rotates the yaw a lot while their pitch stays bit-for-bit
- *       constant for a long time is treated as an auto-fish client, which fakes
- *       camera movement with yaw only (a real mouse moves both axes).</li>
- * </ul>
+ * <p>Fishing is judged only on the player's actual rod input: if the last few
+ * right-clicks with the rod are bot-regular (a fixed interval), the catch does
+ * not count. A player who clicks irregularly — including an auto-reel or simply
+ * standing still and clicking — is never affected. This is deliberately
+ * conservative: a fixed-interval autoclicker cannot actually catch fish in
+ * vanilla anyway (any click reels the bobber in immediately), so the guard
+ * cannot cause false positives on legitimate fishers.</p>
  *
  * <p>Activity is updated from {@link PlayerMoveEvent}, which on Folia runs on
  * the player's region thread. Each player has an isolated, synchronised state,
@@ -79,21 +75,11 @@ public final class AntiAfkTracker implements Listener {
     private static final String FISH_OBJECTIVE = "PLAYER_FISH";
     private static final String FISH_INPUT_HISTORY = "PLAYER_FISH_INPUT";
 
-    // Any change larger than this counts as genuine pitch movement. Auto-fish
-    // clients rotate yaw but send a pitch delta of exactly 0, so pitch never
-    // changes at all for them.
-    private static final double PITCH_EPSILON = 0.001;
-
     private final Map<UUID, PlayerState> states = new ConcurrentHashMap<>();
     private final Map<String, Boolean> objectiveToggles = new ConcurrentHashMap<>();
 
     private boolean enabled;
     private long calmWindowMillis;
-    private long fishInputTimeoutMillis;
-    private boolean fishAimCheckEnabled;
-    private long fishAimWindowMillis;
-    private double fishMinYaw;
-    private int fishMinCatchesWhilePitchStatic;
     private double minRotationDelta;
     private int minActionsWhileCalm;
     private int regularitySamples;
@@ -127,11 +113,6 @@ public final class AntiAfkTracker implements Listener {
         FileConfiguration config = plugin.getConfig();
         enabled = config.getBoolean("anti_afk.enabled", true);
         calmWindowMillis = config.getLong("anti_afk.calm_window_seconds", 180) * 1000L;
-        fishInputTimeoutMillis = Math.max(0L, config.getLong("anti_afk.fish_input_timeout_seconds", 2)) * 1000L;
-        fishAimCheckEnabled = config.getBoolean("anti_afk.fish_aim_check", true);
-        fishAimWindowMillis = Math.max(1000L, config.getLong("anti_afk.fish_aim_window_seconds", 300) * 1000L);
-        fishMinYaw = config.getDouble("anti_afk.fish_min_yaw_degrees", 30.0);
-        fishMinCatchesWhilePitchStatic = config.getInt("anti_afk.fish_min_catches_while_pitch_static", 3);
         minRotationDelta = config.getDouble("anti_afk.min_rotation_delta", 0.1);
         minActionsWhileCalm = config.getInt("anti_afk.min_actions_while_calm", 5);
         regularitySamples = Math.max(2, config.getInt("anti_afk.regularity_samples", 10));
@@ -209,39 +190,17 @@ public final class AntiAfkTracker implements Listener {
     }
 
     /**
-     * Fishing is judged on the player's actual rod input rather than on the
-     * catches themselves. Catch intervals are random (the bite delay is
-     * random), so they cannot separate a bot from a human, and "many catches
-     * while calm" wrongly flags a legitimate player who simply stands still and
-     * clicks. Instead, a legitimate catch is always preceded by a right-click
-     * of the rod, while a "held mouse button" macro/scheme produces either no
-     * per-reel input or bot-regular input. In addition, an auto-fish client that
-     * fakes activity with yaw-only rotation (pitch never changes) is refused.
+     * Fishing is judged only on the player's actual rod input: a catch is refused
+     * only when the last few right-clicks of the rod form a bot-regular (fixed
+     * interval) pattern. Everything else — irregular clicking, an auto-reel, or
+     * just standing still and clicking — counts. Catch intervals themselves are
+     * random (the bite delay is random), so they carry no signal.
      */
     private boolean shouldCountFishing(Player player) {
         PlayerState state = states.computeIfAbsent(player.getUniqueId(), k -> new PlayerState(System.currentTimeMillis()));
-        long now = System.currentTimeMillis();
 
         synchronized (state) {
-            // Auto-fish clients rotate the yaw to fake activity but never change
-            // pitch (a real mouse moves both axes). Catching fish while rotating
-            // the yaw with a bit-exact constant pitch is not something a human
-            // with a mouse does.
-            if (fishAimCheckEnabled) {
-                refreshAimWindow(state, now);
-                state.aimCatches++;
-                if (!state.aimPitchChanged
-                        && state.aimYaw >= fishMinYaw
-                        && state.aimCatches >= fishMinCatchesWhilePitchStatic) {
-                    return false;
-                }
-            }
-
-            // No calm/movement gate here: a fishing farm may push the player
-            // around in water, and the rod input is a reliable signal on its own.
-            boolean regularInput = isRegularInterval(FISH_OBJECTIVE, state.actionHistory.get(FISH_INPUT_HISTORY));
-            boolean noInput = now - state.lastFishInputMillis > fishInputTimeoutMillis;
-            return !(regularInput || noInput);
+            return !isRegularInterval(FISH_OBJECTIVE, state.actionHistory.get(FISH_INPUT_HISTORY));
         }
     }
 
@@ -296,37 +255,12 @@ public final class AntiAfkTracker implements Listener {
         if (deltaYaw > 180.0) deltaYaw = 360.0 - deltaYaw;
         double deltaPitch = Math.abs(to.getPitch() - from.getPitch());
         boolean rotated = deltaYaw + deltaPitch >= minRotationDelta;
-        boolean pitchMoved = deltaPitch > PITCH_EPSILON;
 
-        if (!changedBlock && !rotated && !pitchMoved) return;
+        if (!changedBlock && !rotated) return;
 
         PlayerState state = states.computeIfAbsent(event.getPlayer().getUniqueId(), k -> new PlayerState(System.currentTimeMillis()));
         synchronized (state) {
-            long now = System.currentTimeMillis();
-
-            // Auto-fish clients rotate the yaw but send a pitch delta of exactly
-            // zero, so any real pitch change proves a human (or a normal client).
-            if (fishAimCheckEnabled) {
-                refreshAimWindow(state, now);
-                if (pitchMoved) {
-                    state.aimPitchChanged = true;
-                } else {
-                    state.aimYaw += deltaYaw;
-                }
-            }
-
-            if (changedBlock || rotated) {
-                state.lastActivityMillis = now;
-            }
-        }
-    }
-
-    private void refreshAimWindow(PlayerState state, long now) {
-        if (now - state.aimWindowStartMillis >= fishAimWindowMillis) {
-            state.aimWindowStartMillis = now;
-            state.aimYaw = 0;
-            state.aimPitchChanged = false;
-            state.aimCatches = 0;
+            state.lastActivityMillis = System.currentTimeMillis();
         }
     }
 
@@ -341,8 +275,6 @@ public final class AntiAfkTracker implements Listener {
         long now = System.currentTimeMillis();
         PlayerState state = states.computeIfAbsent(event.getPlayer().getUniqueId(), k -> new PlayerState(now));
         synchronized (state) {
-            state.lastFishInputMillis = now;
-
             Deque<Long> history = state.actionHistory.computeIfAbsent(FISH_INPUT_HISTORY, k -> new ArrayDeque<>());
             history.addLast(now);
             int maxHistory = Math.max(regularitySamples, minActionsWhileCalm) + 1;
@@ -366,16 +298,9 @@ public final class AntiAfkTracker implements Listener {
 
         private final Map<String, Deque<Long>> actionHistory = new HashMap<>();
         private long lastActivityMillis;
-        private long lastFishInputMillis;
-        private long aimWindowStartMillis;
-        private double aimYaw;
-        private boolean aimPitchChanged;
-        private int aimCatches;
 
         private PlayerState(long now) {
             this.lastActivityMillis = now;
-            this.lastFishInputMillis = now;
-            this.aimWindowStartMillis = now;
         }
     }
 }

@@ -93,35 +93,18 @@ anti_afk:
   min_rotation_delta: 0.1
   # Minimum number of actions of the same type performed while calm before they
   # stop counting. Gives a grace period and avoids punishing occasional actions.
-  # Not used for PLAYER_FISH (see fish_input_timeout_seconds).
   min_actions_while_calm: 5
-  # PLAYER_FISH: a legitimate catch is always preceded by a right-click of the
-  # fishing rod (reeling). A catch that had no rod input within this many seconds
-  # -- or that has bot-regular rod input -- is treated as automation. This does
-  # not penalise a player who simply stands still and clicks, because their
-  # right-clicks are irregular and happen right before every catch.
-  fish_input_timeout_seconds: 2
-  # PLAYER_FISH: auto-fish clients rotate the yaw to fake activity but never
-  # change pitch, because a real mouse moves both axes and it is basically
-  # impossible to rotate the camera for minutes while pitch stays bit-for-bit
-  # identical. If, within the window, a player accumulated at least this much
-  # yaw rotation while their pitch did not change at all and they caught at
-  # least this many fish, the score is refused. A player who moves a real mouse
-  # (pitch changes) or stands still (no yaw) is never affected.
-  #
-  # NOTE: this can also flag a client that locks the pitch (some PvP clients), or
-  # fishing on a continuously rotating platform/boat, because both rotate yaw
-  # without pitch. Set fish_aim_check to false if that becomes a problem. This is
-  # a targeted heuristic against yaw-only fake movement, not a general anti-cheat.
-  fish_aim_check: true
-  fish_aim_window_seconds: 300
-  fish_min_yaw_degrees: 30
-  fish_min_catches_while_pitch_static: 3
   # Autoclicker/regularity detection: how many recent actions of the same type
   # to remember, how many intervals are required before judging, and the maximum
   # coefficient of variation (stddev/mean) that is still considered "bot-like".
   # Lower regularity_max_cv = stricter. Set regularity_min_samples very high to
   # effectively disable the regularity check (only the "sustained" check is used).
+  #
+  # For PLAYER_FISH this is the only check: a catch is refused only when the last
+  # few right-clicks with the rod form a bot-regular (fixed interval) pattern.
+  # Irregular clicking, auto-reel and standing still while clicking all count.
+  # (A fixed-interval autoclicker cannot actually catch fish in vanilla anyway,
+  # so this cannot false-positive on legitimate fishers.)
   regularity_samples: 10
   regularity_min_samples: 6
   regularity_max_cv: 0.08
