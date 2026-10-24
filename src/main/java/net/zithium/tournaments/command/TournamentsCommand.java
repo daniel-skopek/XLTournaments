@@ -10,6 +10,7 @@ import net.zithium.tournaments.utility.ColorUtil;
 import net.zithium.tournaments.utility.TextUtil;
 import net.zithium.tournaments.utility.TaskScheduler;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -141,10 +142,15 @@ public class TournamentsCommand extends CommandBase {
     @Permission({"tournaments.admin", "tournaments.command.clearplayer"})
     @WrongUsage("&c/tournament clearplayer <player> <tournament>")
     @Completion({"#players", "#tournaments"})
-    public void clearPlayerSubCommand(final CommandSender sender, final Player target, final String input) {
+    public void clearPlayerSubCommand(final CommandSender sender, final String targetInput, final String input) {
+
+        OfflinePlayer target = Bukkit.getPlayer(targetInput);
+        if (target == null) {
+            target = Bukkit.getOfflinePlayerIfCached(targetInput);
+        }
 
         if (target == null) {
-            sender.sendMessage(ColorUtil.color("&cPlayer is invalid or offline."));
+            sender.sendMessage(ColorUtil.color("&cCould not find a player with that name."));
             return;
         }
 
@@ -156,7 +162,7 @@ public class TournamentsCommand extends CommandBase {
 
         Tournament tournament = optionalTournament.get();
         tournament.clearParticipant(target.getUniqueId());
-        Messages.TOURNAMENT_CLEARED_PLAYER.send(sender, "{TOURNAMENT}", tournament.getIdentifier(), "{PLAYER}", target.getName());
+        Messages.TOURNAMENT_CLEARED_PLAYER.send(sender, "{TOURNAMENT}", tournament.getIdentifier(), "{PLAYER}", target.getName() != null ? target.getName() : targetInput);
     }
 
     @SubCommand("list")
